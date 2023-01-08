@@ -20,6 +20,9 @@ async def github_webhook(request: Request) -> JSONResponse:
     print('payload', payload)
 
     if ref == 'refs/heads/main':
+        subprocess.run([
+            'git', 'pull', 'origin', 'main'
+        ], cwd='./tmp')
         return
 
     asyncio.create_task(build_lib(commit_hash, ref))
@@ -55,7 +58,11 @@ Releasing commit [{commit_hash}] to NPM as pre-release! :package:
     ], cwd='./tmp')
 
     subprocess.run([
-        'git', 'checkout', commit_hash
+        'git', 'checkout', branch_ref.replace('refs/heads/', '')
+    ], cwd='./tmp')
+
+    subprocess.run([
+        'git', 'reset', '--hard', f"origin/{branch_ref.replace('refs/heads/', '')}"
     ], cwd='./tmp')
 
     subprocess.run([
