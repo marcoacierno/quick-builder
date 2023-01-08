@@ -46,7 +46,7 @@ Releasing commit [{commit_hash}] to NPM as pre-release! :package:
 """
 
     if found_comment is None:
-        issue.create_comment(message)
+        found_comment = issue.create_comment(message)
     else:
         found_comment.edit(message)
 
@@ -95,10 +95,7 @@ pnpm add @python-italia/pycon-styleguide@{pr_version}
 ```
 """
 
-    if found_comment is None:
-        issue.create_comment(message)
-    else:
-        found_comment.edit(message)
+    found_comment.edit(message)
 
 
 app = Starlette(debug=True, routes=[
