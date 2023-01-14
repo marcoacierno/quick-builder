@@ -25,10 +25,14 @@ async def github_webhook(request: Request) -> JSONResponse:
         ], cwd='./tmp')
         return
 
-    asyncio.create_task(build_lib(commit_hash, ref))
+    person = payload['sender']['login']
+    if person != 'marcoacierno' or person != 'estyxx':
+        return
+
+    asyncio.create_task(build_lib(commit_hash, ref, person))
     return JSONResponse({'status': 'ok'})
 
-async def build_lib(commit_hash: str, branch_ref: str):
+async def build_lib(commit_hash: str, branch_ref: str, person: str):
     github = Github(GITHUB_ACCESS_TOKEN)
     repo = github.get_repo("pythonitalia/pycon-styleguide")
     pulls = repo.get_pulls(head=branch_ref)
@@ -53,40 +57,41 @@ Releasing commit [{commit_hash}] to NPM as pre-release! :package:
     else:
         found_comment.edit(message)
 
+    work_dir = "./tmp-marco" if person == "marcoacierno" else "tmp"
     subprocess.run([
         'git', 'fetch'
-    ], cwd='./tmp')
+    ], cwd=work_dir)
 
     subprocess.run([
         'git', 'checkout', branch_ref.replace('refs/heads/', '')
-    ], cwd='./tmp')
+    ], cwd=work_dir)
 
     subprocess.run([
         'git', 'reset', '--hard', f"origin/{branch_ref.replace('refs/heads/', '')}"
-    ], cwd='./tmp')
+    ], cwd=work_dir)
 
     subprocess.run([
         'pnpm', 'version', 'patch', '--no-git-tag-version'
-    ], cwd='./tmp')
+    ], cwd=work_dir)
 
-    with open('./tmp/package.json', 'r') as f:
+    with open(f'{work_dir}/package.json', 'r') as f:
         package_json = f.read()
         new_version = json.loads(package_json)['version']
         pr_version = f'{new_version}-pr{commit_hash}'
 
     subprocess.run([
         'pnpm', 'version', pr_version, '--no-git-tag-version'
-    ], cwd='./tmp')
+    ], cwd=work_dir)
 
     print("run build")
     subprocess.run([
         'pnpm', 'run', 'build'
-    ], cwd='./tmp')
+    ], cwd=work_dir)
 
     print("publish")
     subprocess.run([
         'pnpm', 'publish', '--tag', 'pr', '--no-git-checks'
-    ], cwd='./tmp')
+    ], cwd=work_dir)
 
 
     message = f"""
