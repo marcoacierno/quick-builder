@@ -42,6 +42,17 @@ async def build_lib(commit_hash: str, branch_ref: str, person: str):
         if pull.head.sha == commit_hash),
         None
     )
+    if not pull_req:
+        pulls = repo.get_pulls(head=branch_ref)
+        pull_req = next(
+            (pull for pull in pulls
+            if pull.head.sha == commit_hash),
+            None
+        )
+
+    if not pull_req:
+        return
+
     pull_request_id = pull_req.number
     issue = repo.get_issue(number=pull_request_id)
     found_comment = None
